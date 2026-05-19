@@ -1,0 +1,26 @@
+[package]
+name = "fountain_raptor_10"
+version = "1.0.0"
+edition = "2024"
+authors = ["Zigeng Xu", "Shenghao Yang"]
+license = "MIT"
+description = "Raptor-10 fountain code scheme built on fountain_engine"
+repository = "https://github.com/wutongabc/fountain_raptor_10"
+documentation = "https://docs.rs/fountain_raptor_10"
+keywords = ["fountain-code", "erasure-coding", "raptor-code", "fec", "rfc5053"]
+categories = ["algorithms", "encoding", "network-programming"]
+readme = "README.md"
+include = [
+    "src/**",
+    "examples/**",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+]
+
+[dependencies]
+fountain_engine = "1.1.1"
+fountain_scheme = "1.0.1"
+
+[dev-dependencies]
+fountain_utility = "1.0.1"
