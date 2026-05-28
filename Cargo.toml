@@ -1,6 +1,6 @@
 [package]
 name = "fountain_raptor_10"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2024"
 authors = ["Zigeng Xu", "Shenghao Yang"]
 license = "MIT"
@@ -21,6 +21,4 @@ include = [
 [dependencies]
 fountain_engine = "1.2.1"
 fountain_scheme = "1.1.0"
-
-[dev-dependencies]
 fountain_utility = "1.1.0"

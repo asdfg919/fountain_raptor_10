@@ -13,9 +13,9 @@ the in-memory `VecDataOperater` used in the example below.
 
 ```toml
 [dependencies]
-fountain_raptor_10 = "1.0"
-fountain_engine = "1.1"
-fountain_utility = "1.0"
+fountain_raptor_10 = "1.1"
+fountain_engine = "1.2"
+fountain_utility = "1.1"
 ```
 
 Create a Raptor-10 systematic code scheme:
