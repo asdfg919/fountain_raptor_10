@@ -31,7 +31,7 @@ pub(crate) fn calculate_s(k: u32, x: u32) -> u32 {
 pub(crate) fn calculate_h(k: u32, s: u32) -> u32 {
     let target = k + s;
     let mut h = 1;
-    
+
     loop {
         let h_half = (h as f64 / 2.0).ceil() as u32;
         if binomial(h, h_half) >= target as u64 {
@@ -39,7 +39,7 @@ pub(crate) fn calculate_h(k: u32, s: u32) -> u32 {
         }
         h += 1;
     }
-    
+
     h
 }
 
@@ -86,7 +86,7 @@ pub(crate) fn is_prime(n: u32) -> bool {
     if n % 2 == 0 {
         return false;
     }
-    
+
     let sqrt_n = (n as f64).sqrt() as u32;
     for i in (3..=sqrt_n).step_by(2) {
         if n % i == 0 {
@@ -113,13 +113,13 @@ pub(crate) fn binomial(n: u32, k: u32) -> u64 {
     if k == 0 || k == n {
         return 1;
     }
-    
+
     let k = k.min(n - k); // Take advantage of symmetry
     let mut result: u64 = 1;
-    
+
     for i in 0..k {
         result = result * (n - i) as u64 / (i + 1) as u64;
     }
-    
+
     result
 }
