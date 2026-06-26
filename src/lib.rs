@@ -4,6 +4,7 @@
 
 pub mod generator;
 pub mod raptor_10;
+pub mod cached_R10HDPC;
 
 pub use generator::*;
 pub use raptor_10::Raptor10SysCode;

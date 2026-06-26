@@ -22,6 +22,7 @@ use fountain_scheme::precodes::hdpc_binary::R10HDPC;
 use fountain_scheme::precodes::ldpc::R10LDPC;
 use crate::generator::rfc5053_degree_set::RFC5053DegreeSet;
 use crate::generator::math_util::*;
+use crate::cached_R10HDPC::CachedR10HDPC;
 
 /// Raptor10 Systematic Code (RFC 5053)
 /// 
@@ -46,6 +47,7 @@ pub struct Raptor10SysCode {
     params: CodeParams,
     //ldpc_creator: Box<dyn Fn(&CodeParams) -> Box<dyn LDPC>>,
     k: usize, // Store k for RFC5053DegreeSet creation
+    code_type: CodeType,
 }
 
 impl Raptor10SysCode {
@@ -96,6 +98,7 @@ impl Raptor10SysCode {
         Self {
             params,
             k,
+            code_type: CodeType::Systematic,
         }
     }
 
@@ -117,6 +120,12 @@ impl Raptor10SysCode {
     fn dynamic_inactivation_budget(&self) -> usize {
         self.params.num_pre_inactive() + self.k / 2 + 10
     }
+
+    pub fn with_code_type(mut self, code_type: CodeType) -> Self {
+        self.code_type = code_type;
+        self
+    }
+
 }
 
 impl CodeScheme for Raptor10SysCode {
@@ -127,7 +136,7 @@ impl CodeScheme for Raptor10SysCode {
 
     /// Get the code type (Systematic)
     fn code_type(&self) -> CodeType {
-        CodeType::Systematic
+        self.code_type
     }
 
     /// Create a degree set function using RFC 5053 degree set generator
@@ -152,7 +161,7 @@ impl CodeScheme for Raptor10SysCode {
     /// Uses HDPC10 from fountain_basic and configurable LDPC type
     fn create_precode(&self) -> (Option<Box<dyn HDPC>>, Option<Box<dyn LDPC>>) {
         // Create HDPC10 from fountain_basic
-        let hdpc: Option<Box<dyn HDPC>> = Some(Box::new(R10HDPC::new()));
+        let hdpc: Option<Box<dyn HDPC>> = Some(Box::new(CachedR10HDPC::new()));
         
         let ldpc: Option<Box<dyn LDPC>> = Some(Box::new(R10LDPC::new(&self.params)));
 

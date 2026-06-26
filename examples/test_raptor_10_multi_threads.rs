@@ -41,10 +41,10 @@ struct WorkerResult {
     duration: Duration,
 }
 
-fn test_single_k(k: usize) -> bool {
+fn test_single_k(k: usize, code_type: CodeType) -> bool {
     let symbol_size = 4;
 
-    let config = Raptor10SysCode::new_with_default_setting(k);
+    let config = Raptor10SysCode::new_with_default_setting(k).with_code_type(code_type);
     let params = config.get_params();
     let k_prime = params.k;
 
@@ -63,17 +63,41 @@ fn test_single_k(k: usize) -> bool {
     let mut encoder = Encoder::new_with_operator(&config, Box::new(encode_operator));
     let mut coded_id_to_data_id = HashMap::new();
 
-    for coded_id in 0..k_prime {
-        if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
-            coded_id_to_data_id.insert(coded_id, data_id);
-        }
-    }
+    // for coded_id in 0..k_prime {
+    //     if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
+    //         coded_id_to_data_id.insert(coded_id, data_id);
+    //     }
+    // }
+
+    // let total_num = params.num_total();
+    // let num_repair = k_prime / 2;
+    // for coded_id in total_num..total_num + num_repair {
+    //     if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
+    //         coded_id_to_data_id.insert(coded_id, data_id);
+    //     }
+    // }
 
     let total_num = params.num_total();
     let num_repair = k_prime / 2;
-    for coded_id in total_num..total_num + num_repair {
-        if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
-            coded_id_to_data_id.insert(coded_id, data_id);
+    match config.code_type() {
+        CodeType::Systematic => {
+            for coded_id in 0..k_prime {
+                if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
+                    coded_id_to_data_id.insert(coded_id, data_id);
+                }
+            }
+            for coded_id in total_num..total_num + num_repair {
+                if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
+                    coded_id_to_data_id.insert(coded_id, data_id);
+                }
+            }
+        }
+        CodeType::Ordinary => {
+            for coded_id in total_num..total_num + k_prime + num_repair {
+                if let Some(data_id) = encoder.encode_coded_vector(coded_id) {
+                    coded_id_to_data_id.insert(coded_id, data_id);
+                }            
+            }
         }
     }
 
@@ -81,25 +105,62 @@ fn test_single_k(k: usize) -> bool {
     let mut decoder =
         Decoder::new_with_operator(&config, Box::new(VecDataOperater::new(symbol_size)));
 
+    // let mut decoded = false;
+    // for coded_id in 0..k_prime {
+    //     if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
+    //         let status = decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
+    //         if matches!(status, DecodeStatus::Decoded) {
+    //             decoded = true;
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // if !decoded {
+    //     for coded_id in total_num..total_num + num_repair {
+    //         if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
+    //             let status =
+    //                 decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
+    //             if matches!(status, DecodeStatus::Decoded) {
+    //                 decoded = true;
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+
     let mut decoded = false;
-    for coded_id in 0..k_prime {
-        if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
-            let status = decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
-            if matches!(status, DecodeStatus::Decoded) {
-                decoded = true;
-                break;
+    match config.code_type() {
+        CodeType::Systematic => {
+            for coded_id in 0..k_prime {
+                if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
+                    let status = decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
+                    if matches!(status, DecodeStatus::Decoded) {
+                        decoded = true;
+                        break;
+                    }
+                }
+            }
+            if !decoded {
+                for coded_id in total_num..total_num + num_repair {
+                    if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
+                        let status = decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
+                        if matches!(status, DecodeStatus::Decoded) {
+                            decoded = true;
+                            break;
+                        }
+                    }
+                }
             }
         }
-    }
-
-    if !decoded {
-        for coded_id in total_num..total_num + num_repair {
-            if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
-                let status =
-                    decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
-                if matches!(status, DecodeStatus::Decoded) {
-                    decoded = true;
-                    break;
+        CodeType::Ordinary => {
+            for coded_id in total_num..total_num + k_prime + num_repair {
+                if let Some(data_id) = coded_id_to_data_id.get(&coded_id) {
+                    let status = decoder.add_coded_vector(coded_id, encoder_operator.get_vector(*data_id));
+                    if matches!(status, DecodeStatus::Decoded) {
+                        decoded = true;
+                        break;
+                    }
                 }
             }
         }
@@ -163,7 +224,7 @@ fn main() {
 
                     let k = shared_k_values[index];
                     let test_started = Instant::now();
-                    let status = match panic::catch_unwind(AssertUnwindSafe(|| test_single_k(k))) {
+                    let status = match panic::catch_unwind(AssertUnwindSafe(|| test_single_k(k, CodeType::Ordinary))) {
                         Ok(true) => TestStatus::Solvable,
                         Ok(false) => TestStatus::Unsolvable,
                         Err(_) => TestStatus::Panicked,
