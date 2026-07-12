@@ -1,23 +1,25 @@
 use fountain_engine::DataManager;
-use fountain_engine::algebra::finite_field::{GF2, GF256};
-use fountain_engine::algebra::linear_algebra::Matrix;
+use fountain_engine::algebra::finite_field::GF256;
+// use fountain_engine::algebra::finite_field::{GF2, GF256};
+// use fountain_engine::algebra::linear_algebra::Matrix;
 use fountain_engine::traits::{LDPC, HDPC};
 use fountain_engine::types::{CodeParams};
 use fountain_scheme::precodes::hdpc_binary::R10HDPC;
-use std::cell::RefCell;
+use std::sync::{Arc, OnceLock};
+
 
 pub struct CachedR10HDPC {
     inner: R10HDPC,
-    cached_lu: RefCell<Option<(Vec<usize>, Vec<Vec<u8>>)>>,
+    cached_lu: Arc<OnceLock<(CodeParams, Vec<usize>, Vec<Vec<u8>>)>>,
 }
 
 impl CachedR10HDPC {
     /// Creates a new Raptor-10 binary HDPC precode instance.
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(cache: Arc<OnceLock<(CodeParams, Vec<usize>, Vec<Vec<u8>>)>>) -> Self {
         Self {
             inner: R10HDPC::new(),
-            cached_lu: RefCell::new(None),
+            cached_lu: cache,
         }
     }
 }
@@ -74,12 +76,17 @@ impl HDPC for CachedR10HDPC {
         params: &CodeParams,
         ldpc: &dyn LDPC,
     ) -> (Vec<usize>, Vec<Vec<u8>>) {
-        if let Some(ref cached) = *self.cached_lu.borrow() {
-            return cached.clone();
+        if let Some(cached) = self.cached_lu.get() {
+            if cached.0.k == params.k
+                && cached.0.a == params.a
+                && cached.0.l == params.l
+                && cached.0.h == params.h {
+                return (cached.1.clone(), cached.2.clone());
+            }
         }
 
         let (p, m) = self.inner.lu_idssh(gf, params, ldpc);
-        *self.cached_lu.borrow_mut() = Some((p.clone(), m.clone()));
+        let _ = self.cached_lu.set((params.clone(), p.clone(), m.clone()));
 
         // let sh_column = |row: usize| {
         //     ldpc.inactive_row(row)

@@ -23,6 +23,7 @@ use fountain_scheme::precodes::ldpc::R10LDPC;
 use crate::generator::rfc5053_degree_set::RFC5053DegreeSet;
 use crate::generator::math_util::*;
 use crate::cached_R10HDPC::CachedR10HDPC;
+use std::sync::{Arc, OnceLock};
 
 /// Raptor10 Systematic Code (RFC 5053)
 /// 
@@ -48,6 +49,7 @@ pub struct Raptor10SysCode {
     //ldpc_creator: Box<dyn Fn(&CodeParams) -> Box<dyn LDPC>>,
     k: usize, // Store k for RFC5053DegreeSet creation
     code_type: CodeType,
+    cached_hdpc_lu: Arc<OnceLock<(CodeParams, Vec<usize>, Vec<Vec<u8>>)>>, // Cache for LU decomposition
 }
 
 impl Raptor10SysCode {
@@ -99,6 +101,7 @@ impl Raptor10SysCode {
             params,
             k,
             code_type: CodeType::Systematic,
+            cached_hdpc_lu: Arc::new(OnceLock::new()), // Initialize the cache for LU decomposition
         }
     }
 
@@ -113,7 +116,7 @@ impl Raptor10SysCode {
     /// # Returns
     /// 
     /// A new `Raptor10SysCode` instance with default settings
-   pub fn new_with_default_setting(k: usize) -> Self {
+    pub fn new_with_default_setting(k: usize) -> Self {
         Self::new(k, 30.min(k))
     }
 
@@ -161,7 +164,7 @@ impl CodeScheme for Raptor10SysCode {
     /// Uses HDPC10 from fountain_basic and configurable LDPC type
     fn create_precode(&self) -> (Option<Box<dyn HDPC>>, Option<Box<dyn LDPC>>) {
         // Create HDPC10 from fountain_basic
-        let hdpc: Option<Box<dyn HDPC>> = Some(Box::new(CachedR10HDPC::new()));
+        let hdpc: Option<Box<dyn HDPC>> = Some(Box::new(CachedR10HDPC::new(self.cached_hdpc_lu.clone())));
         
         let ldpc: Option<Box<dyn LDPC>> = Some(Box::new(R10LDPC::new(&self.params)));
 
